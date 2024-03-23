@@ -1,13 +1,15 @@
-import { Controller, Get, Redirect, Query, Req } from '@nestjs/common';
+import { Controller, Get, Redirect, Render, Req, Res} from '@nestjs/common';
 import { Request } from 'express';
+import { Response } from 'express';
 import * as session from 'express-session';
+import { AuthMiddleware } from '../middleware/middleware.auth';
 
 @Controller('saml')
-export class SamlController {
+export class SamlController {   	
 
-    	// This route should be accessible to users trying to log in via SAML
     	@Get('login')
-    	async getloginpage () {
-		return "Hello";
+	@Render('login')
+	grtLoginPage (res: Response) {
+		return {message: "SAML"};
 	}
 }

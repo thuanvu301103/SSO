@@ -22,7 +22,6 @@ export class SamlModule implements NestModule{
 				cookie: {secure: false}
 			})
 		).forRoutes('*');
-		
 		consumer.apply(AuthMiddleware).forRoutes('*');
   	}
 }
