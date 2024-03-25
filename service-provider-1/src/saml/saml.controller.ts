@@ -48,4 +48,22 @@ export class SamlController {
 		return null;
 	} 
 	
+	// First protected service
+	@Get('rolelist')
+	@Render('rolelist')
+	getRoleList() {
+		// call service
+		let role_list = this.samlService.getRoleList();
+		return {message: role_list};
+	}
+	
+	
+	// Second protected service
+	@Get('classlist')
+	@Render('classlist')
+	getClassList() {
+		// call service
+		let class_list = this.samlService.getClassList();
+		return {message: class_list};
+	}	
 }

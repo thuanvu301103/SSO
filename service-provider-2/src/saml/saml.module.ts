@@ -1,9 +1,31 @@
-import { Module } from '@nestjs/common';
+// SP
+
+import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import * as session from 'express-session';
 import { SamlController } from './saml.controller';
 import { SamlService } from './saml.service';
+// import middleware
+import { AuthMiddleware } from './middleware/middleware.saml.auth';
 
 @Module({
-  controllers: [SamlController],
-  providers: [SamlService]
+	imports: [],
+	controllers: [SamlController],
+	providers: [SamlService]
 })
-export class SamlModule {}
+export class SamlModule implements NestModule{
+	configure(consumer: MiddlewareConsumer) {
+    	// Apply AuthMiddleware to all routes within the AppModule
+		// Whenever a user enters anypath, a session is created 
+		consumer.apply(
+			session({
+				secret: 'vungocthuan1234',
+				resave: false,
+				saveUninitialized: false,
+				cookie: {secure: false}
+			})
+		).forRoutes({ path: 'saml*', method: RequestMethod.ALL });
+		consumer.apply(AuthMiddleware)
+			.exclude('/saml/asc')
+			.forRoutes({ path: 'saml*', method: RequestMethod.ALL });
+  	}
+}

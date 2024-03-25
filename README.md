@@ -21,7 +21,9 @@ The reason why we need to do this is explain on website: ```https://dev.to/qoobe
 
 ## Coding instructions
 
-### Create database
+### Initial for all server
+
+#### Create database
 - We want to keep everything as simple as possible so we jusst neeed to define a typescript file to hold variables and data.
 - In each project, in the the ```src```, create a folder named ```schema```.
 - For the Identity-provider, we neeed to store login data (password and username):
@@ -45,7 +47,7 @@ export {login_data};
 ```
 - For Service-providers, we can add some attributes that attach to users:
 ```javascript
-\\ file: schema.userdata.ts
+// file: schema.userdata.ts
 let user_data = [
 	{ 
 		username: "nguyenvana",
@@ -66,13 +68,13 @@ let user_data = [
 export {user_data};
 ```
 
-### Create ```views``` folders. 
+#### Create ```views``` folders. 
 - Since we using MVC model, we need to create ```views``` module.
 - The ```views``` folder should be in the same directory as ```src``` folder in each project (each server).
 - The ```views``` folde contains ```hbs``` files which will be rendered later.
 - Example for a ```hbs``` file:
 ```html
-\\ file: views\login.hbs
+// file: views\login.hbs
 <!-- login.hbs -->
 
 <!DOCTYPE html>
@@ -99,9 +101,9 @@ export {user_data};
 </html>
 ```
 
-### Config Express instance to render ```hbs``` views
+#### Config Express instance to render ```hbs``` views
 ```javascript
-\\ file: main.ts
+// file: main.ts
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
@@ -119,10 +121,112 @@ bootstrap();
 - Caution: this project is running on the localhost (on your computer) so these servers must run on different ports:
    + Identity-provider runs on port 3000
    + Service-provider-1 runs on port 3001
-   + Service-provider-1 runs on port 3002
-- Change port number inside ```javascript app.listen(3000);```
+   + Service-provider-2 runs on port 3002
+- Change port number inside ```await app.listen(3000);```
 
-## Service provider
+#### Sub-modules
+- The idea of this project is to implement more than one SSO method
+- Using nestJS to create module in each server
+- The next instructions is used to implement SAML SSO method
+
+### Service-provider side
+
+#### Create services endpoints
+- These services need to be protected
+- Controller:
+```javascript
+// file: saml/saml.controller.ts
+export class SamlController {
+	constructor(private readonly samlService: SamlService) { }	 
+	
+	@Get('rolelist')
+	@Render('rolelist')
+	getRoleList() {
+		// call service
+		let role_list = this.samlService.getRoleList();
+		return {message: role_list};
+	}
+	
+	
+	@Get('classlist')
+	@Render('classlist')
+	getClassList() {
+		// call service
+		let class_list = this.samlService.getClassList();
+		return {message: class_list};
+	}	
+}
+```
+- Service:
+```javascript
+// file: saml/saml.service.ts
+import { Injectable } from '@nestjs/common';
+import { user_data } from '../schema/schema.userdata';	// Import user-data from schema 
+
+@Injectable()
+export class SamlService {
+
+	// First protected service: get role-list
+	public getRoleList() {
+		let result = [];
+		for (let i in user_data) {
+			result.push({user: user_data[i].username, role: user_data[i].role});
+		} 
+		return result;
+	}
+
+	// Second protected service: get class-list
+	public getClassList() {
+		let result = [];
+		for (let i in user_data) {
+			result.push({user: user_data[i].username, class: user_data[i].class});
+		} 
+		return result;
+	}
+}
+```
+- hbs views
+```hbs
+<!-- rolelist.hbs -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    	<meta charset="UTF-8">
+    	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    	<title>Role list</title>
+</head>
+<body>
+    	<h2>Role list</h2>
+	<ul>
+  		{{#each message}}
+    			<li>user: {{user}} - role: {{role}}</li>
+  		{{/each}}
+	</ul>
+</body>
+</html>
+
+<!-- classlist.hbs -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class list</title>
+</head>
+<body>
+    	<h2>Class list</h2>
+	<ul>
+  		{{#each message}}
+    			<li>user: {{user}} - class: {{class}}</li>
+  		{{/each}}
+	</ul>
+
+</body>
+</html>
+```
+
 
 #### Implement middleware to check login status
 - Middleware in web development is code that runs between the incoming request and the route handler (or controller action) in your application
