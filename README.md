@@ -1,16 +1,78 @@
 # SSO
 
-## Install necessary dependencies
+## Getting started guide
+
+### Flatform
+We use NestJs, a back-end Javascript platform, to implement server. 
+
+### Architecture
+Since this project' aim is to implement SSO, we use MVC model as server's architecture pattern.
+
+### Start Projects 
+Use NestJS to set up 3 projects including indentity-provider, service-provider-1 and service-provider-2. These 3 projects is 3 server-sides that work as an SSO system.
+
+### Install necessary dependencies
 - ```npm uninstall @types/ty```
 - ```npm install -D @types/express-session@1.17.0```
 The reason why we need to do this is explain on website: ```https://dev.to/qoobes/express-session-failing-with-typescript-types-express-session-1ehk``` 
 - ```npm install hbs```
+- ```npm install xml2js```
+- ```npm install zlib```
 
-## MVC model
-Since this project' aim is to implement SSO, we can use MVC model as server's architecture
+## Coding instructions
+
+### Create database and services
+
+#### Create database
+- We want to keep everything as simple as possible so we jusst neeed to define a typescript file to hold variables and data.
+- In each project, in the the ```src```, create a folder named ```schema```.
+- For the Identity-provider, we neeed to store login data (password and username):
+```javascript
+\\ file: schema.logindata.ts
+let login_data = [
+	{ 
+		username: "nguyenvana",
+		password: "nguyenvana"
+	},
+	{
+		username: "buithib",
+		passsword: "buithib" 
+	},
+	{
+		username: "chauvanc",
+		password: "chauvanc"
+	}
+];
+export {login_data};
+```
+- For Service-providers, we can add some attributes that attach to users:
+```javascript
+let user_data = [
+	{ 
+		username: "nguyenvana",
+		role: "student",
+		class: "12A"
+	},
+	{
+		username: "buithib",
+		role: "teacher",
+		class: "12B"
+	},
+	{
+		username: "chauvanc",
+		role: "student",
+		class: "12C"
+	}
+];
+export {user_data};
+```
+
+#### Create services
+
 
 ### Create ```views``` folders. 
-- The ```views``` folder should be in the same directory as ```src``` folder.
+- Since we using MVC model, we need to create ```views``` module.
+- The ```views``` folder should be in the same directory as ```src``` folder in each project (each server).
 - The ```views``` folde contains ```hbs``` files which will be rendered later
 ```html
 \\ file: views\login.hbs
