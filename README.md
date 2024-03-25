@@ -21,9 +21,7 @@ The reason why we need to do this is explain on website: ```https://dev.to/qoobe
 
 ## Coding instructions
 
-### Create database and services
-
-#### Create database
+### Create database
 - We want to keep everything as simple as possible so we jusst neeed to define a typescript file to hold variables and data.
 - In each project, in the the ```src```, create a folder named ```schema```.
 - For the Identity-provider, we neeed to store login data (password and username):
@@ -47,6 +45,7 @@ export {login_data};
 ```
 - For Service-providers, we can add some attributes that attach to users:
 ```javascript
+\\ file: schema.userdata.ts
 let user_data = [
 	{ 
 		username: "nguyenvana",
@@ -67,13 +66,11 @@ let user_data = [
 export {user_data};
 ```
 
-#### Create services
-
-
 ### Create ```views``` folders. 
 - Since we using MVC model, we need to create ```views``` module.
 - The ```views``` folder should be in the same directory as ```src``` folder in each project (each server).
-- The ```views``` folde contains ```hbs``` files which will be rendered later
+- The ```views``` folde contains ```hbs``` files which will be rendered later.
+- Example for a ```hbs``` file:
 ```html
 \\ file: views\login.hbs
 <!-- login.hbs -->
@@ -102,7 +99,7 @@ export {user_data};
 </html>
 ```
 
-### Config Express instance
+### Config Express instance to render ```hbs``` views
 ```javascript
 \\ file: main.ts
 import { NestFactory } from '@nestjs/core';
@@ -116,10 +113,14 @@ async function bootstrap() {
   	app.setBaseViewsDir(join(__dirname, '..', 'views'));
   	app.setViewEngine('hbs');
   	await app.listen(3000);
-
 }
 bootstrap();
 ```
+- Caution: this project is running on the localhost (on your computer) so these servers must run on different ports:
+   + Identity-provider runs on port 3000
+   + Service-provider-1 runs on port 3001
+   + Service-provider-1 runs on port 3002
+- Change port number inside ```javascript app.listen(3000);```
 
 ## Service provider
 
