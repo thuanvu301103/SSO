@@ -1,4 +1,6 @@
-import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+// IdP
+
+import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import * as session from 'express-session';
 import { SamlController } from './saml.controller';
 import { SamlService } from './saml.service';
@@ -24,7 +26,7 @@ export class SamlModule implements NestModule{
 		consumer
 			.apply(AuthMiddleware)
 			.exclude('/saml/login') 
-			.forRoutes('*');
+			.forRoutes({ path: 'saml*', method: RequestMethod.ALL });
   	}
 }
 

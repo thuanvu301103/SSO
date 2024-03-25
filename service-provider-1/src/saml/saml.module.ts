@@ -1,9 +1,11 @@
-import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+// SP
+
+import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import * as session from 'express-session';
 import { SamlController } from './saml.controller';
 import { SamlService } from './saml.service';
 // import middleware
-import { AuthMiddleware } from '../middleware/middleware.auth';
+import { AuthMiddleware } from './middleware/middleware.saml.auth';
 
 @Module({
 	imports: [],
@@ -21,7 +23,9 @@ export class SamlModule implements NestModule{
 				saveUninitialized: false,
 				cookie: {secure: false}
 			})
-		).forRoutes('*');
-		consumer.apply(AuthMiddleware).forRoutes('*');
+		).forRoutes({ path: 'saml*', method: RequestMethod.ALL });
+		consumer.apply(AuthMiddleware)
+			.exclude('/saml/asc')
+			.forRoutes({ path: 'saml*', method: RequestMethod.ALL });
   	}
 }
