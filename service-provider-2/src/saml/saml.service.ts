@@ -9,6 +9,7 @@ import { user_data } from '../schema/schema.userdata';	// Import user-data form 
 @Injectable()
 export class SamlService {
 
+	// Generate SAML Request to send to IdP - compress XML to bind to URL later
 	public generateSamlRequest(): string {
     		// Construct the SAML authentication request XML
     		const samlRequest = 
@@ -18,6 +19,9 @@ export class SamlService {
     			<!-- Any additional elements or attributes required by your IdP -->
 			</samlp:AuthnRequest>`;
 		
+		// Log XML request message	
+		console.log("\nGenerate SAML request message: \n", samlRequest);
+	
 		// Compress the XML payload
         	//const compressedXml = zlib.deflateSync(encodedRequest);
 		const compressedXml = zlib.deflateSync(samlRequest);

@@ -19,6 +19,9 @@ export class SamlService {
     			<!-- Any additional elements or attributes required by your IdP -->
 			</samlp:AuthnRequest>`;
 		
+		// Log XML request message	
+		console.log("\nGenerate SAML request message: \n", samlRequest);
+	
 		// Compress the XML payload
         	//const compressedXml = zlib.deflateSync(encodedRequest);
 		const compressedXml = zlib.deflateSync(samlRequest);

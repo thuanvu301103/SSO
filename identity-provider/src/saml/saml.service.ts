@@ -25,12 +25,10 @@ export class SamlService {
 	public decodeAndParseSamlRequest(encodedRequest: string): Promise<any> {
     		try {
 			// Log encoded request
-			console.log('Encoded SAML request: ', encodedRequest);
+			console.log('\nEncoded SAML request sent from SP: ', encodedRequest);
 			
 			encodedRequest = encodedRequest.replace(/ /g, '+');
-
 			const decodedRequest = Buffer.from(encodedRequest, 'base64');
-
 
 			// Decompress the decoded data
     			const decompressedXml = zlib.inflateSync(decodedRequest);
@@ -39,8 +37,8 @@ export class SamlService {
     			const samlRequest = decompressedXml.toString('utf-8');
 			
         		// Log decoded request
-        		//console.log('Decoded SAML request:', decodedRequest);
-			console.log('Decoded SAML request:', samlRequest);
+        		//console.log('\nDecoded SAML request sent from SP: \n', decodedRequest);
+			console.log('\nDecoded SAML request sent from SP: \n', samlRequest);
 
         		// Parse the XML
         		const parser = new xml2js.Parser({ explicitArray: false, mergeAttrs: true });

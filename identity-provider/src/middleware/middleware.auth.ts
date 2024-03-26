@@ -11,15 +11,19 @@ export class AuthMiddleware implements NestMiddleware {
 	) { }
 	
 	async use(req: Request, res: Response, next: NextFunction) {
+
 		// Check whether user's information is in session or not. If no, redirect to login page
-		console.log("Session: " + req.session.user);
+		console.log("\nOn accessing to IdP: Session-user: " + req.session.user);
+	
 		if (!req.session || !req.session.user) {
+			console.log("\nRedirect user to login page.");
       			res.redirect('/saml/login');
     		}
+
     		// If user has aldready logined
-		// If the request iss from SP then redirect back to SP
 		let ascServiceURL: string;
 		let requestId: string;
+		// If the request is from SP then redirect back to SP
 		if (req.session.samlreq) {
 			await this.samlService.decodeAndParseSamlRequest(req.session.samlreq)
 				.then((jsonResponse) => {

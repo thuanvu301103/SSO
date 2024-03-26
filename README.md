@@ -304,14 +304,14 @@ export class SamlAuthMiddleware implements NestMiddleware {
 
 	use(@Req() req: Request, @Res() res: Response, next: NextFunction) {
 		// Check whether user's information is in session or not
-		console.log('/nOn accessing to SP's service: Session-username = ', req.session.user);
+		console.log('\nOn accessing to SP's service: Session-username = ', req.session.user);
 	
 		if (!req.session || !req.session.user) {
       		// If not, redirect user to login page
 
 			// Binding SAML Request to redirect link
 			let redirect_link = IdP_saml_loginpage + '?SAMLRequest=' + this.samlService.generateSamlRequest();
-			console.log("/nRedirect to IdP link: " + redirect_link);   
+			console.log("\nRedirect to IdP link: " + redirect_link);   
       			res.redirect(redirect_link);
     		}
     		// If user has aldready logined, continue to access services	
@@ -322,31 +322,46 @@ export class SamlAuthMiddleware implements NestMiddleware {
 Caution:
    + ```NestMiddleware``` is an interface provided by NestJS that middleware classes can implement.
    + When a class implements NestMiddleware, it must provide a ```use()``` method, which is the middleware logic that NestJS will execute for each incoming HTTP request.
-- Apply auth middleware to every path (Config SAML module)
-Purpose: whenever user enters any path, auth middleware will be active
+
+- Apply auth middleware to paths (Config SAML module)
+Purpose: whenever user enters any path (start with ```http://127.0.0.1:3001/saml/...``` and except for ```http://127.0.0.1:3001/saml/asc```), auth middleware will be active
 ```javascript
-\\ file: saml.module.ts
-import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+// file: saml/saml.module.ts
+import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import * as session from 'express-session';
 import { SamlController } from './saml.controller';
 import { SamlService } from './saml.service';
-// import Auth middleware
-import { AuthMiddleware } from '../middleware/middleware.auth';
+// import middleware
+import { SamlAuthMiddleware } from '../middleware/middleware.saml.auth';
 
 @Module({
+	imports: [],
 	controllers: [SamlController],
 	providers: [SamlService]
 })
 export class SamlModule implements NestModule{
 	configure(consumer: MiddlewareConsumer) {
     	// Apply AuthMiddleware to all routes within the AppModule
-    		consumer.apply(AuthMiddleware).forRoutes('*');
+		// Whenever a user enters anypath, a session is created 
+		consumer.apply(
+			session({
+				secret: 'vungocthuan1234',
+				resave: false,
+				saveUninitialized: false,
+				cookie: {secure: false}
+			})
+		).forRoutes({ path: 'saml*', method: RequestMethod.ALL });
+		consumer.apply(SamlAuthMiddleware)
+			.exclude('/saml/asc')
+			.forRoutes({ path: 'saml*', method: RequestMethod.ALL });
   	}
 }
 ```
-- ```NestModule``` is an interface provided by NestJS that modules can implement. It requires the implementation of a configure method, which is used to define how the module should be configured. Modules implementing NestModule can perform initialization tasks, set up providers, configure middleware, etc.
-- ```MiddlewareConsumer``` is a class provided by NestJS that represents a builder for configuring middleware within a module. It provides methods for applying middleware to routes or groups of routes within the module. The MiddlewareConsumer is typically used within the configure method of a module that implements NestModule.
-- ```configure``` method is a required method when a class implements the NestModule interface. It allows you to define how the module should be configured, including setting up middleware, defining providers, etc. The configure method receives a MiddlewareConsumer parameter, which is used to configure middleware for the module.
-- ```consumer``` refers to the MiddlewareConsumer instance that is passed as a parameter to the configure method. You use the consumer object to apply middleware to routes or groups of routes within the module using methods like apply and forRoutes.
+Caution:
+   + ```NestModule``` is an interface provided by NestJS that modules can implement. It requires the implementation of a configure method, which is used to define how the module should be configured. Modules implementing NestModule can perform initialization tasks, set up providers, configure middleware, etc.
+   + ```MiddlewareConsumer``` is a class provided by NestJS that represents a builder for configuring middleware within a module. It provides methods for applying middleware to routes or groups of routes within the module. The MiddlewareConsumer is typically used within the configure method of a module that implements NestModule.
+   + ```configure``` method is a required method when a class implements the NestModule interface. It allows you to define how the module should be configured, including setting up middleware, defining providers, etc. The configure method receives a MiddlewareConsumer parameter, which is used to configure middleware for the module.    
+   + ```consumer``` refers to the MiddlewareConsumer instance that is passed as a parameter to the configure method. You use the consumer object to apply middleware to routes or groups of routes within the module using methods like apply and forRoutes.
 
 ### Apply middleware (create session middleware) to check if the user is logined or not
 Purpose: whenever user enters any path off service provider, a session will be created.
@@ -383,6 +398,72 @@ export class SamlModule implements NestModule{
 ```
 
 ## Identity provider
+
+### Decode SAML Request sent from SP
+```typescript
+import { Injectable } from '@nestjs/common';
+import { login_data } from '../schema/schema.logindata'
+import * as xml2js from 'xml2js'; // Import xml2js properly
+import * as zlib from 'zlib'; // Import zlib for decompression
+
+@Injectable()
+export class SamlService {
+
+	// decode SAML requesst message
+	public decodeAndParseSamlRequest(encodedRequest: string): Promise<any> {
+    		try {
+			// Log encoded request
+			console.log('\nEncoded SAML request sent from SP: ', encodedRequest);
+			
+			encodedRequest = encodedRequest.replace(/ /g, '+');
+			const decodedRequest = Buffer.from(encodedRequest, 'base64');
+
+			// Decompress the decoded data
+    			const decompressedXml = zlib.inflateSync(decodedRequest);
+
+    			// Convert the decompressed data to a string
+    			const samlRequest = decompressedXml.toString('utf-8');
+			
+        		// Log decoded request
+        		//console.log('\nDecoded SAML request sent from SP: \n', decodedRequest);
+			console.log('\nDecoded SAML request sent from SP: \n', samlRequest);
+
+        		// Parse the XML
+        		const parser = new xml2js.Parser({ explicitArray: false, mergeAttrs: true });
+        		return new Promise((resolve, reject) => {
+            			parser.parseString(samlRequest, (err, result) => {
+                			if (err) {
+                    				console.error('Error parsing SAML request XML:', err);
+                    				reject(err); // Reject if parsing fails
+                			} else {
+                    				// Extract necessary information
+                    				const samlRequest = result['samlp:AuthnRequest'];
+                    				const requestId = samlRequest['ID'];
+                    				const issuer = samlRequest['Issuer'];
+                    				//const nameId = samlRequest['saml:Subject']['saml:NameID']['_'];
+                    				const assertionConsumerServiceURL = samlRequest['AssertionConsumerServiceURL'];
+
+                    				// Construct JSON object with extracted information
+                    				const jsonRequest = {
+                        				requestId: requestId,
+                        				issuer: issuer,
+                        				/*nameId,*/
+                        				assertionConsumerServiceURL: assertionConsumerServiceURL
+                        				// Add more fields as needed
+                    				};
+
+                    				// Resolve with the JSON object
+                    				resolve(jsonRequest);
+                			}
+            			});
+        		});
+    		} catch (error) {
+        		console.error('Error decoding SAML request:', error);
+        		return Promise.reject(error);
+    		}
+	}
+}
+```
 
 ### Implement middleware to check login status
 Purpose: whenever user enters a path that attachs to this middleware, if user has not logined the IdP, user will be redirect to login page in IdP.
@@ -444,3 +525,13 @@ export class SamlModule implements NestModule{
 - Caution:
    + The example code has already apply middleware (create session middleware) to check if the user is logined or not too
    + ```.exclude('/saml/login')```: since we apply auth middleware to all path, this part of code is very important to avoid never-end loop redirect
+
+
+## Appendix
+### Kill process (server) running on specific port:
+- Find PID of server running on port:
+```
+netstat -ano | findstr :<Port number>
+```
+- Kill that process: 
+taskkill /F /PID <PID>
