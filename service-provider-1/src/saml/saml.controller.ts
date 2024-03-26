@@ -42,10 +42,17 @@ export class SamlController {
 		}
 	}
 	
+	// Incase user want to login to the system
+	@Get('login')
+	getLogin(@Res() res: Response) {
+		// Redirect to dashboard if user has aldready been authenticated
+		res.redirect('/dashboard');
+	}
+
 	@Get('dashboard')
 	@Render('dashboard')
-	getDas() {
-		return null;
+	getDas (@Req() req: Request) {
+		return {message: req.session.user};
 	} 
 	
 	// First protected service

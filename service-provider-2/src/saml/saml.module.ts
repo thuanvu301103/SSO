@@ -5,7 +5,7 @@ import * as session from 'express-session';
 import { SamlController } from './saml.controller';
 import { SamlService } from './saml.service';
 // import middleware
-import { AuthMiddleware } from './middleware/middleware.saml.auth';
+import { SamlAuthMiddleware } from '../middleware/middleware.saml.auth';
 
 @Module({
 	imports: [],
@@ -24,7 +24,7 @@ export class SamlModule implements NestModule{
 				cookie: {secure: false}
 			})
 		).forRoutes({ path: 'saml*', method: RequestMethod.ALL });
-		consumer.apply(AuthMiddleware)
+		consumer.apply(SamlAuthMiddleware)
 			.exclude('/saml/asc')
 			.forRoutes({ path: 'saml*', method: RequestMethod.ALL });
   	}

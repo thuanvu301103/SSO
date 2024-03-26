@@ -139,6 +139,20 @@ bootstrap();
 export class SamlController {
 	constructor(private readonly samlService: SamlService) { }	 
 	
+	// Incase user want to login to the system
+	@Get('login')
+	getLogin(@Res() res: Response) {
+		// Redirect to dashboard if user has aldready been authenticated
+		res.redirect('/dashboard');
+	}
+
+	@Get('dashboard')
+	@Render('dashboard')
+	getDas (@Req() req: Request) {
+		return {message: req.session.user};
+	}
+
+	
 	@Get('rolelist')
 	@Render('rolelist')
 	getRoleList() {
@@ -187,6 +201,20 @@ export class SamlService {
 ```
 - hbs views
 ```hbs
+<!-- dashboard.hbs -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    	<meta charset="UTF-8">
+    	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    	<title>Dashboard</title>
+</head>
+<body>
+    	<h2>Welcome {{message}}</h2>
+</body>
+</html>
+
 <!-- rolelist.hbs -->
 
 <!DOCTYPE html>
@@ -227,25 +255,38 @@ export class SamlService {
 </html>
 ```
 
-
-#### Implement middleware to check login status
+#### Implement middleware check user's login status in SP
 - Middleware in web development is code that runs between the incoming request and the route handler (or controller action) in your application
 - Purpose: whenever user enters a path that attachs to this middleware, if user has not logined the service provider, user will be redirect to login page in IdP.  
+- If this senerio happens, we need to generate SAML Request first:
+
+
 
 ```javascript
-\\ file middleware.auth.ts
-import { Injectable, NestMiddleware } from '@nestjs/common';
+// file middleware/middleware.saml.auth.ts
+import { Injectable, NestMiddleware, Req, Res } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
+import { SamlService } from '../saml/saml.service';
 
 @Injectable()
-export class AuthMiddleware implements NestMiddleware {
-	use(req: Request, res: Response, next: NextFunction) {
-		// Check whether user's information is in session orr not
+export class SamlAuthMiddleware implements NestMiddleware {
+	constructor(private readonly samlService: SamlService) {}	
+	
+	const IdP_saml_loginpage = 'http://127.0.0.1:3000/saml/login';
+
+	use(@Req() req: Request, @Res() res: Response, next: NextFunction) {
+		// Check whether user's information is in session or not
+		console.log('/nOn accessing to SP's service: Session-username = ', req.session.user);
+	
 		if (!req.session || !req.session.user) {
-      			// If not, redirect user to login page
-      			return res.redirect('http:127.0.0.1:3000/saml/login');
+      		// If not, redirect user to login page
+
+			// Binding SAML Request to redirect link
+			let redirect_link = IdP_saml_loginpage + '?SAMLRequest=' + this.samlService.generateSamlRequest();
+			console.log("/nRedirect to IdP link: " + redirect_link);   
+      			res.redirect(redirect_link);
     		}
-    		// If user has aldready logined, continue
+    		// If user has aldready logined, continue to access services	
     		next();
   	}
 }

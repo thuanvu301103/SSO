@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import * as zlib from 'zlib'; // Import zlib for compression
 import * as xml2js from 'xml2js'; // Import xml2js properly
+import { user_data } from '../schema/schema.userdata';	// Import user-data form schema
 
 
 @Injectable()
@@ -83,6 +84,24 @@ export class SamlService {
         		console.error('Error decoding SAML request:', error);
         		return Promise.reject(error);
     		}
+	}
+
+	// First protected service: get role-list
+	public getRoleList() {
+		let result = [];
+		for (let i in user_data) {
+			result.push({user: user_data[i].username, role: user_data[i].role});
+		} 
+		return result;
+	}
+
+	// Second protected service: get class-list
+	public getClassList() {
+		let result = [];
+		for (let i in user_data) {
+			result.push({user: user_data[i].username, class: user_data[i].class});
+		} 
+		return result;
 	}
 
 }
