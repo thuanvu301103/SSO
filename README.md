@@ -259,9 +259,37 @@ export class SamlService {
 - Middleware in web development is code that runs between the incoming request and the route handler (or controller action) in your application
 - Purpose: whenever user enters a path that attachs to this middleware, if user has not logined the service provider, user will be redirect to login page in IdP.  
 - If this senerio happens, we need to generate SAML Request first:
+```javascript
+import { Injectable } from '@nestjs/common';
+import * as zlib from 'zlib'; // Import zlib for compression
+import * as xml2js from 'xml2js'; // Import xml2js properly
+import { user_data } from '../schema/schema.userdata';	// Import user-data form schema
 
+@Injectable()
+export class SamlService {
 
+	// Generate SAML Request to send to IdP - compress XML to bind to URL later
+	public generateSamlRequest(): string {
+    		// Construct the SAML authentication request XML
+    		const samlRequest = 
+			`<samlp:AuthnRequest xmlns="urn:oasis:names:tc:SAML:2.0:protocol" ID="1234" Version="2.0" IssueInstant="2024-03-24T12:00:00Z" Destination="http://127.0.0.1:3000/saml/login"	AssertionConsumerServiceURL = "http://127.0.0.1:3001/saml/asc" ProtocolBinding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST">
+    			<Issuer>http://127.0.0.1:3001</Issuer>
+    			<NameIDPolicy Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress" AllowCreate="true"/>
+    			<!-- Any additional elements or attributes required by your IdP -->
+			</samlp:AuthnRequest>`;
+		
+		// Compress the XML payload
+        	//const compressedXml = zlib.deflateSync(encodedRequest);
+		const compressedXml = zlib.deflateSync(samlRequest);
+	
+		// Encode the XML string
+    		const encodedRequest = Buffer.from(compressedXml).toString('base64');
 
+		return encodedRequest;
+  	}
+}
+```
+- Implement middleware:
 ```javascript
 // file middleware/middleware.saml.auth.ts
 import { Injectable, NestMiddleware, Req, Res } from '@nestjs/common';
@@ -291,10 +319,9 @@ export class SamlAuthMiddleware implements NestMiddleware {
   	}
 }
 ```
-- ```NestMiddleware``` is an interface provided by NestJS that middleware classes can implement.
-- When a class implements NestMiddleware, it must provide a ```use()``` method, which is the middleware logic that NestJS will execute for each incoming HTTP request.
-
-### Apply auth middleware to every path
+   + ```NestMiddleware``` is an interface provided by NestJS that middleware classes can implement.
+   + When a class implements NestMiddleware, it must provide a ```use()``` method, which is the middleware logic that NestJS will execute for each incoming HTTP request.
+- Apply auth middleware to every path (Config SAML module)
 Purpose: whenever user enters any path, auth middleware will be active
 ```javascript
 \\ file: saml.module.ts

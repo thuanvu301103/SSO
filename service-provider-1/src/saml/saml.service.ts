@@ -9,6 +9,7 @@ import { user_data } from '../schema/schema.userdata';	// Import user-data form 
 @Injectable()
 export class SamlService {
 
+	// Generate SAML Request to send to IdP - compress XML to bind to URL later
 	public generateSamlRequest(): string {
     		// Construct the SAML authentication request XML
     		const samlRequest = 
