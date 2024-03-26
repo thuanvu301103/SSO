@@ -319,6 +319,7 @@ export class SamlAuthMiddleware implements NestMiddleware {
   	}
 }
 ```
+Caution:
    + ```NestMiddleware``` is an interface provided by NestJS that middleware classes can implement.
    + When a class implements NestMiddleware, it must provide a ```use()``` method, which is the middleware logic that NestJS will execute for each incoming HTTP request.
 - Apply auth middleware to every path (Config SAML module)
