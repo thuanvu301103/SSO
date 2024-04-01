@@ -1,0 +1,18 @@
+<!-- logout.hbs -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    	<meta charset="UTF-8">
+    	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    	<title>Logout</title>
+</head>
+<body>
+    	<h2>Logout from SP1</h2>
+    	Are you sure you want to logout user: {{message}}
+	<form action="http://127.0.0.1:3001/saml/logout" method="POST">
+    		<button type="submit" name="logout" value="yes">Yes</button>
+    		<button type="submit" name="logout" value="no">No</button>
+	</form>
+</body>
+</html>

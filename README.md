@@ -28,7 +28,7 @@ The reason why we need to do this is explain on website: ```https://dev.to/qoobe
 - In each project, in the the ```src```, create a folder named ```schema```.
 - For the Identity-provider, we neeed to store login data (password and username):
 ```javascript
-\\ file: schema.logindata.ts
+// file: schema.logindata.ts
 let login_data = [
 	{ 
 		username: "nguyenvana",
@@ -257,7 +257,7 @@ export class SamlService {
 
 #### Implement middleware check user's login status in SP
 - Middleware in web development is code that runs between the incoming request and the route handler (or controller action) in your application
-- Purpose: whenever user enters a path that attachs to this middleware, if user has not logined the service provider, user will be redirect to login page in IdP.  
+- Purpose: whenever user enters a path that attachs to this middleware, if user has not logined the service provider, user will be redirect to login page in IdP with SAML Request binded to URL.  
 - If this senerio happens, we need to generate SAML Request first:
 ```javascript
 import { Injectable } from '@nestjs/common';
@@ -363,39 +363,42 @@ Caution:
    + ```configure``` method is a required method when a class implements the NestModule interface. It allows you to define how the module should be configured, including setting up middleware, defining providers, etc. The configure method receives a MiddlewareConsumer parameter, which is used to configure middleware for the module.    
    + ```consumer``` refers to the MiddlewareConsumer instance that is passed as a parameter to the configure method. You use the consumer object to apply middleware to routes or groups of routes within the module using methods like apply and forRoutes.
 
-### Apply middleware (create session middleware) to check if the user is logined or not
-Purpose: whenever user enters any path off service provider, a session will be created.
-```javascript
-\\ file: saml.module.ts
-import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
-import * as session from 'express-session';
-import { SamlController } from './saml.controller';
-import { SamlService } from './saml.service';
-// import middleware
-import { AuthMiddleware } from '../middleware/middleware.auth';
+### Implement asc enpoint
+- This endpoint is ussed to receive SAML Response from SP after user's authentication in IdP site
+- If SP receive SAML Response, it will store in session usrename, and uses that session nfo to maintain login in SP
+```typescript
+// file: saml/saml.controller.ts
+	@Get('asc')
+	async getAsc(
+		@Res() res: Response,
+		@Req() req: Request,
+		@Query ('SAMLResponse') saml_response: string 
+	) {
+		if (saml_response) {
+			let username = null;
+			await this.samlService.decodeAndParseSamlResponse(saml_response)
+				.then((jsonResponse) => {
+        				// Handle the jsonResponse containing the extracted data
+					username = jsonResponse['username'];
+        				console.log(jsonResponse);
+    				})
+    				.catch((error) => {
+        				// Handle any errors that occurred during decoding and parsing
+        				console.error(error);
+    				});
+			//console.log('Decode SAML req from SP got: ', decode_res_result.resolve['username']);
+			// Save username
+			req.session.user = username;
+			
+			res.redirect('dashboard');
+			
+		} else {
+			return null;
+		}
+	}
+``` 
 
-@Module({
-	imports: [],
-	controllers: [SamlController],
-	providers: [SamlService]
-})
-export class SamlModule implements NestModule{
-	configure(consumer: MiddlewareConsumer) {
-    	// Apply AuthMiddleware to all routes within the AppModule
-		// Whenever a user enters anypath, a session is created 
-		consumer.apply(
-			session({
-				secret: 'vungocthuan1234',
-				resave: false,
-				saveUninitialized: false,
-				cookie: {secure: false}
-			})
-		).forRoutes('*');
-		
-		consumer.apply(AuthMiddleware).forRoutes('*');
-  	}
-}
-```
+### Implement Logout service
 
 ## Identity provider
 
@@ -468,7 +471,7 @@ export class SamlService {
 ### Implement middleware to check login status
 Purpose: whenever user enters a path that attachs to this middleware, if user has not logined the IdP, user will be redirect to login page in IdP.
 ```javascript
-\\ file middleware.auth.ts
+// file middleware.auth.ts
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import * as path from 'path'; // Import path module to work with file paths
@@ -487,7 +490,7 @@ export class AuthMiddleware implements NestMiddleware {
 ```
 
 ### Apply auth middleware to every path except login page
-Purpose: whenever user enters any path, auth middleware will be active (exxcept login page)
+Purpose: whenever user enters any path, auth middleware will be active (except login page and logout page)
 ```javascript
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import * as session from 'express-session';
@@ -514,17 +517,216 @@ export class SamlModule implements NestModule{
 		).forRoutes('*');
 		consumer
 			.apply(AuthMiddleware)
-			.exclude('/saml/login') 
+			.exclude('/saml/login', '/saml/logout') 
 			.forRoutes('*');
   	}
 }
 ``` 
 
-### Render
+### Implement Login service
+- Purpose: The user will be redirected to login service in 3 senerio
+   + The user request services in SP, but they have not logined yet, they will be redirected to login page of IdP wwith SAML Request
+   + The user request service in IdP but not logined yet
+   + The user request login service directly from IdP
+- Authenticate username and password service:
+```typescript
+// file: saml/saml.service.ts
+	public authenticate (user_name: string, pass_word: string) {
+		console.log("Input: " + user_name + " - " + pass_word);
+		let result = false
+		for (let i in login_data) {
+			if (user_name == login_data[i].username && pass_word == login_data[i].password) {	
+				return true;
+			}
+		}
+		return false; 
+	}
+```
+- Controller:
+```typescript
+// file: saml/saml.controller.ts
+// IdP
 
-- Caution:
-   + The example code has already apply middleware (create session middleware) to check if the user is logined or not too
-   + ```.exclude('/saml/login')```: since we apply auth middleware to all path, this part of code is very important to avoid never-end loop redirect
+import { Controller, Get, Post, Body, Redirect, Render, Req, Res, Query} from '@nestjs/common';
+import { Request } from 'express';
+import { Response } from 'express';
+import { SamlService } from './saml.service'
+import * as session from 'express-session';
+import { AuthMiddleware } from '../middleware/middleware.auth';
+
+@Controller('saml')
+export class SamlController { 
+	constructor(
+		private readonly samlService: SamlService
+	) { }  	
+
+    	@Get('login')
+	@Render('login')
+	getLoginPage (
+		@Query ('SAMLRequest') saml_request: string,	// Handle SAML request sent from SP after authenticate them in IdP
+		@Res() res: Response,
+		@Req() req: Request) {
+		// If this Get is redirect from SP then save SAML resquest in session
+		if (saml_request) {
+			req.session.samlreq = saml_request;
+		}
+		// render Login page
+		return {message: "SAML"};
+	}
+	
+	// The user authenticate username and password
+	@Post('login')
+	autheticate(@Body('username') username: string, @Body('password') password: string, @Req() req: Request,  @Res() res: Response) {
+    		// Retrieve variables from the request body		    	
+		if (this.samlService.authenticate(username, password)) {
+			console.log('Authentication in IdP: approve');
+			// set user session
+			req.session.user = username;
+			// redireact to dashboard
+			res.redirect('/saml/dashboard');	
+		} 
+		else res.redirect('/saml/login');
+	}
+	
+	// Dasshboard service
+	@Get('dashboard')
+	@Render('dashboard')
+	getdDashboard () {
+		return null;
+	}
+}
+``` 
+- If the user has been authenticated, redirect them to dashboard
+
+### Re-implement middleware to check login status
+If this login action comes from SP, then IdP must return SAML Response to SP. In the previous part, after user's authentication, they will be redirect dasshboard. Instead, they can be redirected back to SP asc with SAML Response. This action can be achived by extended Authenticate Middleware
+```typescript
+// file: middle/middle.auth.ts
+	async use(req: Request, res: Response, next: NextFunction) {
+
+		// Check whether user's information is in session or not. If no, redirect to login page
+		console.log("\nOn accessing to IdP: Session-user: " + req.session.user);
+	
+		if (!req.session || !req.session.user) {
+			console.log("\nRedirect user to login page.");
+      			res.redirect('/saml/login');
+    		}
+
+    		// If user has aldready logined
+		let ascServiceURL: string;
+		let requestId: string;
+		// If the request is from SP then redirect back to SP
+		if (req.session.samlreq) {
+			await this.samlService.decodeAndParseSamlRequest(req.session.samlreq)
+				.then((jsonResponse) => {
+        				// Handle the jsonResponse containing the extracted data
+					ascServiceURL = jsonResponse.assertionConsumerServiceURL;
+					console.log('Asc 1: ', ascServiceURL);
+					requestId = jsonResponse.requestId;
+        				console.log('Json Response: ', jsonResponse.assertionConsumerServiceURL);
+    				})
+    				.catch((error) => {
+        				// Handle any errors that occurred during decoding and parsing
+        				console.error(error);
+    				});
+			//console.log('Decode SAML req from SP got: ' + decode_req_result.toString());
+			let decode_res_result = this.samlService.generateSamlResponse(
+				requestId,
+				ascServiceURL,
+				req.session.user				 
+			);
+			// reley from browser to SP
+			console.log('Asc: ', ascServiceURL);
+			let redirect_link = ascServiceURL + '?SAMLResponse=' + decode_res_result;
+			console.log("Redirect link: " + redirect_link);   
+      			res.redirect(redirect_link);
+		}
+    		next();
+  	}
+```
+
+### Encode SAML Response
+```typescript
+// file: saml/saml.service.ts
+	public generateSamlResponse(requestId: string, assertionConsumerServiceURL: string, user: string): string {
+    		// Construct the SAML response XML
+    		const samlResponse = 
+			`<samlp:AuthnRequest xmlns="urn:oasis:names:tc:SAML:2.0:protocol" ID="5678" InResponseTo="${requestId}" Version="2.0" IssueInstant="2024-03-24T12:00:03Z" Destination="${assertionConsumerServiceURL}">
+    				<Issuer>http://127.0.0.1:3000</Issuer>
+				<samlp:Status>
+        				<samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/>
+    				</samlp:Status>
+				<saml:Assertion ID="assertion5678" Version="2.0" IssueInstant="2024-03-24T12:00:03Z" xmlns="urn:oasis:names:tc:SAML:2.0:assertion">
+        				<saml:Issuer>http://127.0.0.1:3000</saml:Issuer>
+        				<saml:Subject>
+            					<saml:NameID>${user}</saml:NameID>
+        				</saml:Subject>
+        				<saml:Conditions NotBefore="2024-03-25T08:00:00Z"
+                         				NotOnOrAfter="2024-03-25T08:05:00Z"/>
+        				<saml:AuthnStatement AuthnInstant="2024-03-25T08:00:00Z">
+            					<saml:AuthnContext>
+                					<saml:AuthnContextClassRef>
+                    						urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport
+                					</saml:AuthnContextClassRef>
+           	 				</saml:AuthnContext>
+        				</saml:AuthnStatement>
+    				</saml:Assertion>
+    				<NameIDPolicy Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress" AllowCreate="true"/>
+    				<!-- Any additional elements or attributes required by your IdP -->
+			</samlp:AuthnRequest>`;
+		
+		// Log SAML Response
+		console.log("Generate SAML Response: ", samlResponse);
+		
+		// Compress the XML payload
+		const compressedXml = zlib.deflateSync(samlResponse);
+	
+		// Encode the XML string
+    		const encodedResponse = Buffer.from(compressedXml).toString('base64');
+
+		return encodedResponse;
+  	}
+```
+
+### Implement Logout Service
+- Controller:
+```typescript
+// file: saml/saml.controller.ts
+
+	@Get('logout')
+	@Render('logout')
+	getLogoutPage (@Res() res: Response,@Req() req: Request) {
+		return {message: req.session.user};
+	}
+	
+	@Post('logout')
+	logOut (@Body('logout') logout: string, @Res() res: Response,@Req() req: Request) {
+		// If logout value == yes then delete user info on thiss session
+		if (logout == 'yes') req.session.user = null;
+		res.redirect('saml/dashboard');
+	}
+```
+- hbs views render:
+```html
+<!-- logout.hbs -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    	<meta charset="UTF-8">
+    	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    	<title>Logout</title>
+</head>
+<body>
+    	<h2>Logout from IdP</h2>
+    	Are you sure you wwant to logout user: {{message}}
+	<form action="http://127.0.0.1:3000/saml/logout" method="POST">
+    		<button type="submit" name="logout" value="yes">Yes</button>
+    		<button type="submit" name="logout" value="no">No</button>
+	</form>
+</body>
+</html>
+```
 
 
 ## Appendix
@@ -533,5 +735,7 @@ export class SamlModule implements NestModule{
 ```
 netstat -ano | findstr :<Port number>
 ```
-- Kill that process: 
+- Kill that process:
+``` 
 taskkill /F /PID <PID>
+```

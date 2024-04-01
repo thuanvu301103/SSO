@@ -12,7 +12,7 @@ export class SamlService {
 	// Authenticate user by username and password
 	public authenticate (user_name: string, pass_word: string) {
 		console.log("Input: " + user_name + " - " + pass_word);
-		let result = false
+		let result = false;
 		for (let i in login_data) {
 			if (user_name == login_data[i].username && pass_word == login_data[i].password) {	
 				return true;

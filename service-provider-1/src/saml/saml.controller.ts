@@ -1,6 +1,6 @@
 // SP
 
-import { Controller, Get, Req, Res, Render, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, Res, Render, Query } from '@nestjs/common';
 import { Request } from 'express';
 import { Response } from 'express';
 import { SamlService } from './saml.service';
@@ -52,6 +52,7 @@ export class SamlController {
 	@Get('dashboard')
 	@Render('dashboard')
 	getDas (@Req() req: Request) {
+		console.log('Request session ID: ', req.sessionID)
 		return {message: req.session.user};
 	} 
 	
@@ -73,4 +74,18 @@ export class SamlController {
 		let class_list = this.samlService.getClassList();
 		return {message: class_list};
 	}	
+
+	@Get('logout')
+	@Render('logout')
+	getLogoutPage (@Res() res: Response,@Req() req: Request) {
+		return {message: req.session.user};
+	}
+
+	@Post('logout')
+	logOut (@Body('logout') logout: string, @Res() res: Response,@Req() req: Request) {
+		// If logout value == yes then delete user info on thiss session
+		if (logout == 'yes')
+			req.session.user = null;
+		res.redirect('/saml/dashboard');
+	}
 }
