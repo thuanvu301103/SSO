@@ -16,13 +16,13 @@ export class AppModule {
 configure(consumer: MiddlewareConsumer) {
     // Configure session middleware
     consumer
-      .apply(cookieParser(), session({
+        .apply(cookieParser(), session({
         secret: 'your-secret',
-        resave: false,
+        resave: true,
         saveUninitialized: true,
         cookie: {
           secure: false, // Set to true in production if using HTTPS
-          httpOnly: true,
+          //httpOnly: true,
           sameSite: 'lax', // Adjust as needed
         },
       }))
@@ -31,8 +31,8 @@ configure(consumer: MiddlewareConsumer) {
     // Configure CORS middleware
     consumer
       .apply(cors({
-        origin: ['http://127.0.0.1:3000', 'http://127.0.0.1:3001'], // Allowed origins
-     credentials: true, // Allow credentials (cookies)
+        origin: true, // Allowed origins
+        credentials: true, // Allow credentials (cookies)
       }))
       .forRoutes('*');
   }

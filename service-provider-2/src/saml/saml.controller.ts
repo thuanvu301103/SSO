@@ -1,6 +1,6 @@
-// SP
+/*---SP-2---*/
 
-import { Controller, Get, Req, Res, Render, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, Res, Render, Query } from '@nestjs/common';
 import { Request } from 'express';
 import { Response } from 'express';
 import { SamlService } from './saml.service';
@@ -11,7 +11,23 @@ export class SamlController {
 
 	constructor(
 		private readonly samlService: SamlService
-	) { }	
+	) { }
+
+	private IdP_saml_loginpage = 'http://127.0.0.1:3000/saml/login';
+
+	@Get('login')
+	@Render('login')
+	getLoginPage(
+		@Res() res: Response,
+		@Req() req: Request) {
+
+		// If this Get is redirect from SP then save SAML resquest in session
+		console.log('----------Access SP-2 login page----------\n');
+
+		let redirect_link = this.IdP_saml_loginpage + '?SAMLRequest=' + this.samlService.generateSamlRequest();
+		//console.log("----------Redirect to IdP with SAML Login Request----------\n" + redirect_link, "\n");
+		return { message: redirect_link };
+	}
 
 	@Get('asc')
 	async getAsc(
@@ -19,6 +35,7 @@ export class SamlController {
 		@Req() req: Request,
 		@Query ('SAMLResponse') saml_response: string 
 	) {
+		console.log("----------Receive SAMLResponse from IdP----------\n");
 		if (saml_response) {
 			let username = null;
 			await this.samlService.decodeAndParseSamlResponse(saml_response)
@@ -33,6 +50,10 @@ export class SamlController {
     				});
 			//console.log('Decode SAML req from SP got: ', decode_res_result.resolve['username']);
 			// Save username
+			console.log("Save login data in session cookie \n")
+			res.cookie('logined-sp2', true, { httpOnly: false });
+			res.cookie('username-sp2', username, { httpOnly: false });
+
 			req.session.user = username;
 			
 			res.redirect('dashboard');
@@ -52,7 +73,7 @@ export class SamlController {
 	@Get('dashboard')
 	@Render('dashboard')
 	getDas (@Req() req: Request) {
-		return {message: req.session.user};
+		return {message: req.cookies["username-sp2"]};
 	} 
 	
 	// First protected service
@@ -73,4 +94,21 @@ export class SamlController {
 		let class_list = this.samlService.getClassList();
 		return {message: class_list};
 	}	
+
+	@Get('logout')
+	@Render('logout')
+	getLogoutPage (@Res() res: Response,@Req() req: Request) {
+		return { message: req.cookies["username-sp2"]};
+	}
+
+	@Post('logout')
+	logOut (@Body('logout') logout: string, @Res() res: Response,@Req() req: Request) {
+		// If logout value == yes then delete user info on thiss session
+		if (logout == 'yes') {
+			res.clearCookie("logined-sp2");
+			//console.log(req.cookies["logined"]);
+			res.clearCookie("username-sp2");
+		}
+		res.redirect('/saml/dashboard');
+	}
 }

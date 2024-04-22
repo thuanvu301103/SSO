@@ -11,7 +11,7 @@ export class SamlService {
 
 	// Authenticate user by username and password
 	public authenticate (user_name: string, pass_word: string) {
-		console.log("Input: " + user_name + " - " + pass_word);
+		console.log("Input username - password: " + user_name + " - " + pass_word);
 		let result = false;
 		for (let i in login_data) {
 			if (user_name == login_data[i].username && pass_word == login_data[i].password) {	
@@ -25,7 +25,6 @@ export class SamlService {
 	public decodeAndParseSamlRequest(encodedRequest: string): Promise<any> {
     		try {
 			// Log encoded request
-			console.log('\nEncoded SAML request sent from SP: ', encodedRequest);
 			
 			encodedRequest = encodedRequest.replace(/ /g, '+');
 			const decodedRequest = Buffer.from(encodedRequest, 'base64');
@@ -38,7 +37,7 @@ export class SamlService {
 			
         		// Log decoded request
         		//console.log('\nDecoded SAML request sent from SP: \n', decodedRequest);
-			console.log('\nDecoded SAML request sent from SP: \n', samlRequest);
+			console.log('Decoded SAML request sent from SP: \n', samlRequest);
 
         		// Parse the XML
         		const parser = new xml2js.Parser({ explicitArray: false, mergeAttrs: true });
@@ -78,6 +77,7 @@ export class SamlService {
 	// encode SAML response message
 	public generateSamlResponse(requestId: string, assertionConsumerServiceURL: string, user: string): string {
     		// Construct the SAML response XML
+        console.log("----------Generate SAML request message----------\n");
     		const samlResponse = 
 			`<samlp:AuthnRequest xmlns="urn:oasis:names:tc:SAML:2.0:protocol" ID="5678" InResponseTo="${requestId}" Version="2.0" IssueInstant="2024-03-24T12:00:03Z" Destination="${assertionConsumerServiceURL}">
     				<Issuer>http://127.0.0.1:3000</Issuer>
@@ -104,7 +104,7 @@ export class SamlService {
 			</samlp:AuthnRequest>`;
 		
 		// Log SAML Response
-		console.log("Generate SAML Response: ", samlResponse);
+		console.log("Generate SAML Response: ", samlResponse, "\n");
 		
 		// Compress the XML payload
 		const compressedXml = zlib.deflateSync(samlResponse);

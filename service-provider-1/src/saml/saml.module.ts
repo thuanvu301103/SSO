@@ -27,7 +27,7 @@ export class SamlModule implements NestModule{
 		).forRoutes({ path: 'saml*', method: RequestMethod.ALL });
 		*/
 		consumer.apply(SamlAuthMiddleware)
-			.exclude('/saml/asc', '/saml/logout')
+			.exclude('/saml/asc', '/saml/logout', '/saml/login')
 			.forRoutes({ path: 'saml*', method: RequestMethod.ALL });
   	}
 }

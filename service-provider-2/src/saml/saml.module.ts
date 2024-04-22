@@ -16,16 +16,18 @@ export class SamlModule implements NestModule{
 	configure(consumer: MiddlewareConsumer) {
     	// Apply AuthMiddleware to all routes within the AppModule
 		// Whenever a user enters anypath, a session is created 
+		/*
 		consumer.apply(
 			session({
 				secret: 'vungocthuan1234',
 				resave: false,
-				saveUninitialized: false,
+				saveUninitialized: true,
 				cookie: {secure: false}
 			})
 		).forRoutes({ path: 'saml*', method: RequestMethod.ALL });
+		*/
 		consumer.apply(SamlAuthMiddleware)
-			.exclude('/saml/asc')
+			.exclude('/saml/asc', '/saml/logout', '/saml/login')
 			.forRoutes({ path: 'saml*', method: RequestMethod.ALL });
   	}
 }

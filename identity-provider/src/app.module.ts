@@ -7,6 +7,7 @@ import * as cookieParser from 'cookie-parser';
 import * as cors from 'cors';
 
 
+
 @Module({
   imports: [SamlModule],
   controllers: [AppController],
@@ -16,25 +17,25 @@ export class AppModule {
 configure(consumer: MiddlewareConsumer) {
     // Configure session middleware
     consumer
-      .apply(cookieParser(), session({
-        secret: 'your-secret',
-        resave: false,
+        .apply(cookieParser(), session({
+        secret: 'bbb',
+        resave: true,
         saveUninitialized: true,
         cookie: {
-          secure: false, // Set to true in production if using HTTPS
-          httpOnly: true,
-          sameSite: 'lax', // Adjust as needed
+            secure: false, // Set to true in production if using HTTPS
+            //httpOnly: true,
+            sameSite: 'lax', // Adjust as needed
         },
-      }))
-      .forRoutes('*');
+      })).forRoutes('*');
 
     // Configure CORS middleware
     consumer
-      .apply(cors({
-        origin: ['http://127.0.0.1:3000', 'http://127.0.0.1:3001'], // Allowed origins
-        credentials: true, // Allow credentials (cookies)
-      }))
-      .forRoutes('*');
-  }
+        .apply(cors({
+            origin: true, // Allowed origins
+            credentials: true, // Allow credentials (cookies)
+        })).forRoutes('*');
+}
+
+
 
 }

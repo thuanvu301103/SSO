@@ -1,4 +1,4 @@
-// SP
+/*---SP-1---*/
 
 import { Injectable } from '@nestjs/common';
 import * as zlib from 'zlib'; // Import zlib for compression
@@ -12,7 +12,7 @@ export class SamlService {
 	// Generate SAML Request to send to IdP - compress XML to bind to URL later
 	public generateSamlRequest(): string {
     		// Construct the SAML authentication request XML
-    		const samlRequest = 
+    	const samlRequest = 
 			`<samlp:AuthnRequest xmlns="urn:oasis:names:tc:SAML:2.0:protocol" ID="1234" Version="2.0" IssueInstant="2024-03-24T12:00:00Z" Destination="http://127.0.0.1:3000/saml/login"	AssertionConsumerServiceURL = "http://127.0.0.1:3001/saml/asc" ProtocolBinding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST">
     			<Issuer>http://127.0.0.1:3001</Issuer>
     			<NameIDPolicy Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress" AllowCreate="true"/>
@@ -20,14 +20,14 @@ export class SamlService {
 			</samlp:AuthnRequest>`;
 		
 		// Log XML request message	
-		console.log("\nGenerate SAML request message: \n", samlRequest);
+		console.log("----------Generate SAML request message----------\n", samlRequest, "\n");
 	
 		// Compress the XML payload
-        	//const compressedXml = zlib.deflateSync(encodedRequest);
+        //const compressedXml = zlib.deflateSync(encodedRequest);
 		const compressedXml = zlib.deflateSync(samlRequest);
 	
 		// Encode the XML string
-    		const encodedRequest = Buffer.from(compressedXml).toString('base64');
+    	const encodedRequest = Buffer.from(compressedXml).toString('base64');
 
 		return encodedRequest;
   	}
@@ -36,7 +36,6 @@ export class SamlService {
 	public decodeAndParseSamlResponse (encodedResponse: string): Promise<any> {
     		try {
 			// Log encoded request
-			console.log('Encoded SAML request: ', encodedResponse);
 			
 			encodedResponse = encodedResponse.replace(/ /g, '+');
 
@@ -51,8 +50,8 @@ export class SamlService {
 			
         		// Log decoded request
         		//console.log('Decoded SAML request:', decodedRequest);
-			console.log('Decoded SAML request:', samlResponse);
-
+				
+				console.log('Decoded SAML request sent from SP: \n', samlResponse);
         		// Parse the XML
         		const parser = new xml2js.Parser({ explicitArray: false, mergeAttrs: true });
         		return new Promise((resolve, reject) => {
