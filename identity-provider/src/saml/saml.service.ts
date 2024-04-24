@@ -1,7 +1,7 @@
-// IdP
+/*---IdP-SAML---*/
 
 import { Injectable } from '@nestjs/common';
-import { login_data } from '../schema/schema.logindata'
+import { login_data } from '../schema/schema.logindata';
 import * as xml2js from 'xml2js'; // Import xml2js properly
 import * as zlib from 'zlib'; // Import zlib for decompression
 
@@ -11,7 +11,7 @@ export class SamlService {
 
 	// Authenticate user by username and password
 	public authenticate (user_name: string, pass_word: string) {
-		console.log("Input username - password: " + user_name + " - " + pass_word);
+		console.log("---------- Input username - password: " + user_name + " - " + pass_word, "\n");
 		let result = false;
 		for (let i in login_data) {
 			if (user_name == login_data[i].username && pass_word == login_data[i].password) {	

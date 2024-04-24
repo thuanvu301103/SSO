@@ -2,6 +2,7 @@ import { Module, MiddlewareConsumer } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SamlModule } from './saml/saml.module';
+import { OidcModule } from './oidc/oidc.module';
 import * as session from 'express-session';
 import * as cookieParser from 'cookie-parser';
 import * as cors from 'cors';
@@ -9,7 +10,7 @@ import * as cors from 'cors';
 
 
 @Module({
-  imports: [SamlModule],
+  imports: [SamlModule, OidcModule],
   controllers: [AppController],
   providers: [AppService],
 })
@@ -18,7 +19,7 @@ configure(consumer: MiddlewareConsumer) {
     // Configure session middleware
     consumer
         .apply(cookieParser(), session({
-        secret: 'bbb',
+        secret: 'vungocthuan',
         resave: true,
         saveUninitialized: true,
         cookie: {

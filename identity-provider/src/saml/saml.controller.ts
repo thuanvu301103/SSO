@@ -1,11 +1,9 @@
-/*---IdP---*/
+/*---IdP-SAML---*/
 
-import { Controller, Get, Post, Body, Redirect, Render, Req, Res, Query} from '@nestjs/common';
+import { Controller, Get, Post, Body, Render, Req, Res, Query} from '@nestjs/common';
 import { Request } from 'express';
 import { Response } from 'express';
 import { SamlService } from './saml.service'
-import * as session from 'express-session';
-import { AuthMiddleware } from '../middleware/middleware.auth';
 
 @Controller('saml')
 export class SamlController { 
@@ -21,10 +19,8 @@ export class SamlController {
 		@Req() req: Request) {
 
 		// If this Get is redirect from SP then save SAML resquest in session
-		console.log('----------Access IdP login page----------\n');
 		
 		if (saml_request) {
-			console.log("Extract SAML Request: \n", saml_request, "\n");
 			req.session.samlreq = saml_request;
 			// Check if session stores username orr not, if yes
 			//if (req.session.user) res.redirect('/saml/dashboard');
@@ -35,7 +31,7 @@ export class SamlController {
 
 		}
 		// render Login page
-		return {message: "SAML"};
+		return {message: "SAML", option: "saml"};
 	}
 	
 	// The user authenticate username and password
@@ -44,20 +40,18 @@ export class SamlController {
 		// Retrieve variables from the request body		
 		
 		if (this.samlService.authenticate(username, password)) {
-			console.log('Authentication credentials in IdP: approve \n');
+			
 			// set cookie
-			console.log("Save login data in session cookie \n")
+			
 			res.cookie('logined-idp', true, { httpOnly: false });
 			res.cookie('username-idp', username, { httpOnly: false });
 			// set user session
 			req.session.user = username;
-			//console.log("Session ID after authentication: ", req.session.id);
-			//console.log("Cookie Session after authentication: ", req.cookies['logined']);
+
 			// redireact to dashboard
 			res.redirect('http://127.0.0.1:3000/saml/dashboard');
 		}
 		else {
-			console.log('Authentication credentials in IdP: deny \n ---------- Retry\n');
 			res.redirect('/saml/login');
 		}
 			

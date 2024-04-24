@@ -1,10 +1,10 @@
-// IdP
+/*---IdP-SAML---*/
 
 import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import * as session from 'express-session';
 import { SamlController } from './saml.controller';
 import { SamlService } from './saml.service';
-import { AuthMiddleware } from '../middleware/middleware.auth';
+import { AuthMiddleware } from '../middleware/middleware.saml';
 
 @Module({
 	imports: [],
