@@ -16,16 +16,13 @@ export class SamlController {
 	getLoginPage (
 		@Query ('SAMLRequest') saml_request: string,	// Handle SAML request sent from SP after authenticate them in IdP
 		@Res() res: Response,
-		@Req() req: Request) {
-
+		@Req() req: Request)
+	{
 		// If this Get is redirect from SP then save SAML resquest in session
-		
 		if (saml_request) {
 			req.session.samlreq = saml_request;
 			// Check if session stores username orr not, if yes
-			//if (req.session.user) res.redirect('/saml/dashboard');
 			if (req.cookies['logined-idp'] && req.cookies['username-idp']) {
-
 				res.redirect('/saml/dashboard');
 			}
 
@@ -37,19 +34,15 @@ export class SamlController {
 	// The user authenticate username and password
 	@Post('login')
 	autheticate(@Body('username') username: string, @Body('password') password: string, @Req() req: Request,  @Res() res: Response) {
-		// Retrieve variables from the request body		
-		
+		// Retrieve variables from the request body	
 		if (this.samlService.authenticate(username, password)) {
-			
 			// set cookie
-			
 			res.cookie('logined-idp', true, { httpOnly: false });
 			res.cookie('username-idp', username, { httpOnly: false });
 			// set user session
 			req.session.user = username;
-
 			// redireact to dashboard
-			res.redirect('http://127.0.0.1:3000/saml/dashboard');
+			res.redirect('/saml/dashboard');
 		}
 		else {
 			res.redirect('/saml/login');
@@ -68,7 +61,7 @@ export class SamlController {
 	@Get('logout')
 	@Render('logout')
 	getLogoutPage (@Res() res: Response,@Req() req: Request) {
-		return { message: req.cookies["username-idp"] };
+		return { message: req.cookies["username-idp"], method: 'saml'};
 	}
 
 	@Post('logout')

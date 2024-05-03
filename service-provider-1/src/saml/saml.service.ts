@@ -20,7 +20,7 @@ export class SamlService {
 			</samlp:AuthnRequest>`;
 		
 		// Log XML request message	
-		console.log("----------Generate SAML request message----------\n", samlRequest, "\n");
+		console.log("---------- Generate SAMLAuthnRequest: \n", samlRequest, "\n");
 	
 		// Compress the XML payload
         //const compressedXml = zlib.deflateSync(encodedRequest);
@@ -51,7 +51,7 @@ export class SamlService {
         		// Log decoded request
         		//console.log('Decoded SAML request:', decodedRequest);
 				
-				console.log('Decoded SAML request sent from SP: \n', samlResponse);
+				console.log('---------- Decoded SAMLResponse sent from IdP: \n', samlResponse);
         		// Parse the XML
         		const parser = new xml2js.Parser({ explicitArray: false, mergeAttrs: true });
         		return new Promise((resolve, reject) => {
@@ -62,21 +62,19 @@ export class SamlService {
                 			} else {
                     				// Extract necessary information
                     				const samlRequest = result['samlp:AuthnRequest'];
-						const samlAssertion = samlRequest['saml:Assertion'];
-						const subject = samlAssertion['saml:Subject'];
-						const nameId = subject['saml:NameID'];		// Username
+									const samlAssertion = samlRequest['saml:Assertion'];
+									const subject = samlAssertion['saml:Subject'];
+									const nameId = subject['saml:NameID'];		// Username
                     				//const requestId = samlRequest['ID'];
                     				//const issuer = samlRequest['Issuer'];
                     				//const nameId = samlRequest['saml:Subject']['saml:NameID']['_'];
                     				//const assertionConsumerServiceURL = samlRequest['AssertionConsumerServiceURL'];
 						
-						console.log (nameId);
-						
                     				// Construct JSON object with extracted information
                     				const jsonRequest = {
-							username: nameId,
-							origin: "null"  
-                   				};
+										username: nameId,
+										origin: "null"  
+                   					};
 
                     				// Resolve with the JSON object
                     				resolve(jsonRequest);

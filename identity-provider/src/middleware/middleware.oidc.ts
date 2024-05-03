@@ -22,14 +22,14 @@ export class AuthMiddleware implements NestMiddleware {
 
 		// If user has aldready logined
 		// If the request is from SP then redirect back to SP
-		if (Object.keys(req.session.queries).length > 0) {
+		if (req.session.queries && Object.keys(req.session.queries).length > 0) {
 			console.log("---------- Generate authorization code: ");
-			const authcode = await this.oidcService.genAuthCode(req.session.userid, req.session.queries.client_id);
+			const authcode = await this.oidcService.genAuthCode(req.cookies['userid-idp'], req.session.queries.client_id);
 			console.log(authcode);
 			
 			let redirect_link = req.session.queries.redirect_uri + '?code=' + authcode + '&state=random_state_value';
       		res.redirect(redirect_link);
 		}
-		next();
+		else next();
   	}
 }

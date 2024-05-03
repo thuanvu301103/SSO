@@ -45,14 +45,14 @@ export class OidcController {
 
 	// The user authenticate username and password
 	@Post('login')
-	autheticate(
+	async autheticate(
 		@Body('username') username: string,
 		@Body('password') password: string,
 		@Req() req: Request,
 		@Res() res: Response)
 	{
 		// Retrieve variables from the request body		
-		const userid = this.oidcService.authenticate(username, password);
+		const userid = await this.oidcService.authenticate(username, password);
 		if (userid) {
 
 			// set cookie
@@ -86,22 +86,40 @@ export class OidcController {
 	@Post('token')
 	async exchangeAuthCode(
 		@Body() body: any,
-		@Res() res: Response, @Req() req: Request
+		@Req() req: Request
 	) {
-		const { clientId, clientSecret, code, redirectUri } = body;
-
-		// Validate client credentials (clientId and clientSecret)
-		const isValidClient = await this.oidcService.findAuthorizationCode(req.cookies['userid-idp'], clientId);
-
-		if (!isValidClient) {
+		
+		const { clientId, authCode, clientSecret, redirectUri } = body;
+		// Validate client auth_code
+		let user_id = this.oidcService.validateAuthCode(authCode, clientId);
+		if (user_id === null) {
 			throw new UnauthorizedException('Invalid client credentials');
 		}
 
 		// Exchange authorization code for access token and optionally refresh token
-		const tokens = await this.oidcService.exchangeAuthorizationCode(code, clientId, redirectUri);
+		const accessToken = this.oidcService.generateAccessToken(req.cookies['userid-idp'], clientId);
+		const idToken = this.oidcService.generateIdToken(req.cookies['userid-idp'], clientId, "http://127.0.0.1:3000/oidc", user_id
+		);
+		console.log("---------- Generate accessToken: \n", { access_token: accessToken, id_token: idToken });
 
-		return tokens;
+		return { access_token: accessToken, id_token: idToken };
+	}
 
+	@Get('logout')
+	@Render('logout')
+	getLogoutPage(@Res() res: Response, @Req() req: Request) {
+		return { message: req.cookies["username-idp"], method: 'oidc'};
+	}
+
+	@Post('logout')
+	logOut(@Body('logout') logout: string, @Res() res: Response, @Req() req: Request) {
+		// If logout value == yes then delete user info on thiss session
+		if (logout == 'yes') {
+			res.clearCookie("logined-idp");
+			//console.log(req.cookies["logined"]);
+			res.clearCookie("username-idp");
+		}
+		res.redirect('/oidc/dashboard');
 	}
 
 }

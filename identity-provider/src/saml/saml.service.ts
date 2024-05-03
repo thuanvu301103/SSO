@@ -5,7 +5,6 @@ import { login_data } from '../schema/schema.logindata';
 import * as xml2js from 'xml2js'; // Import xml2js properly
 import * as zlib from 'zlib'; // Import zlib for decompression
 
-
 @Injectable()
 export class SamlService {
 
@@ -24,20 +23,19 @@ export class SamlService {
 	// decode SAML requesst message
 	public decodeAndParseSamlRequest(encodedRequest: string): Promise<any> {
     		try {
-			// Log encoded request
+			    // Log encoded request
 			
-			encodedRequest = encodedRequest.replace(/ /g, '+');
-			const decodedRequest = Buffer.from(encodedRequest, 'base64');
+			    encodedRequest = encodedRequest.replace(/ /g, '+');
+			    const decodedRequest = Buffer.from(encodedRequest, 'base64');
 
-			// Decompress the decoded data
+			    // Decompress the decoded data
     			const decompressedXml = zlib.inflateSync(decodedRequest);
 
     			// Convert the decompressed data to a string
     			const samlRequest = decompressedXml.toString('utf-8');
 			
-        		// Log decoded request
-        		//console.log('\nDecoded SAML request sent from SP: \n', decodedRequest);
-			console.log('Decoded SAML request sent from SP: \n', samlRequest);
+        	    // Log decoded request
+			    console.log('---------- Decoded SAMLAuthnRequest sent from SP: \n', samlRequest);
 
         		// Parse the XML
         		const parser = new xml2js.Parser({ explicitArray: false, mergeAttrs: true });
@@ -51,7 +49,6 @@ export class SamlService {
                     				const samlRequest = result['samlp:AuthnRequest'];
                     				const requestId = samlRequest['ID'];
                     				const issuer = samlRequest['Issuer'];
-                    				//const nameId = samlRequest['saml:Subject']['saml:NameID']['_'];
                     				const assertionConsumerServiceURL = samlRequest['AssertionConsumerServiceURL'];
 
                     				// Construct JSON object with extracted information
@@ -77,7 +74,7 @@ export class SamlService {
 	// encode SAML response message
 	public generateSamlResponse(requestId: string, assertionConsumerServiceURL: string, user: string): string {
     		// Construct the SAML response XML
-        console.log("----------Generate SAML request message----------\n");
+        console.log("----------Generate SAMLResponse: \n");
     		const samlResponse = 
 			`<samlp:AuthnRequest xmlns="urn:oasis:names:tc:SAML:2.0:protocol" ID="5678" InResponseTo="${requestId}" Version="2.0" IssueInstant="2024-03-24T12:00:03Z" Destination="${assertionConsumerServiceURL}">
     				<Issuer>http://127.0.0.1:3000</Issuer>
@@ -104,13 +101,13 @@ export class SamlService {
 			</samlp:AuthnRequest>`;
 		
 		// Log SAML Response
-		console.log("Generate SAML Response: ", samlResponse, "\n");
+		console.log(samlResponse, "\n");
 		
 		// Compress the XML payload
 		const compressedXml = zlib.deflateSync(samlResponse);
 	
 		// Encode the XML string
-    		const encodedResponse = Buffer.from(compressedXml).toString('base64');
+    	const encodedResponse = Buffer.from(compressedXml).toString('base64');
 
 		return encodedResponse;
   	}	

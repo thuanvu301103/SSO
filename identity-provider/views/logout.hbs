@@ -10,7 +10,7 @@
 <body>
     	<h2>Logout from IdP</h2>
     	Are you sure you want to logout user: {{message}} ?
-	<form action="http://127.0.0.1:3000/saml/logout" method="POST">
+	<form action="http://127.0.0.1:3000/{{method}}/logout" method="POST">
     		<button type="submit" name="logout" value="yes">Yes</button>
     		<button type="submit" name="logout" value="no">No</button>
 	</form>

@@ -2,12 +2,14 @@ import { Module, MiddlewareConsumer } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SamlModule } from './saml/saml.module';
+import { OidcModule } from './oidc/oidc.module';
+import { CasModule } from './cas/cas.module';
 import * as session from 'express-session';
 import * as cookieParser from 'cookie-parser';
 import * as cors from 'cors';
 
 @Module({
-  imports: [SamlModule],
+  imports: [SamlModule, OidcModule, CasModule],
   controllers: [AppController],
   providers: [AppService],
 })

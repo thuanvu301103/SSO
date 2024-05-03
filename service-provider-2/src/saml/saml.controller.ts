@@ -22,11 +22,8 @@ export class SamlController {
 		@Req() req: Request) {
 
 		// If this Get is redirect from SP then save SAML resquest in session
-		console.log('----------Access SP-2 login page----------\n');
-
 		let redirect_link = this.IdP_saml_loginpage + '?SAMLRequest=' + this.samlService.generateSamlRequest();
-		//console.log("----------Redirect to IdP with SAML Login Request----------\n" + redirect_link, "\n");
-		return { message: redirect_link };
+		return { method: "SAML", message: redirect_link };
 	}
 
 	@Get('asc')
@@ -35,7 +32,6 @@ export class SamlController {
 		@Req() req: Request,
 		@Query ('SAMLResponse') saml_response: string 
 	) {
-		console.log("----------Receive SAMLResponse from IdP----------\n");
 		if (saml_response) {
 			let username = null;
 			await this.samlService.decodeAndParseSamlResponse(saml_response)
@@ -48,9 +44,7 @@ export class SamlController {
         				// Handle any errors that occurred during decoding and parsing
         				console.error(error);
     				});
-			//console.log('Decode SAML req from SP got: ', decode_res_result.resolve['username']);
-			// Save username
-			console.log("Save login data in session cookie \n")
+			// Save cookie
 			res.cookie('logined-sp2', true, { httpOnly: false });
 			res.cookie('username-sp2', username, { httpOnly: false });
 
@@ -75,30 +69,11 @@ export class SamlController {
 	getDas (@Req() req: Request) {
 		return {message: req.cookies["username-sp2"]};
 	} 
-	
-	// First protected service
-	@Get('rolelist')
-	@Render('rolelist')
-	getRoleList() {
-		// call service
-		let role_list = this.samlService.getRoleList();
-		return {message: role_list};
-	}
-	
-	
-	// Second protected service
-	@Get('classlist')
-	@Render('classlist')
-	getClassList() {
-		// call service
-		let class_list = this.samlService.getClassList();
-		return {message: class_list};
-	}	
 
 	@Get('logout')
 	@Render('logout')
 	getLogoutPage (@Res() res: Response,@Req() req: Request) {
-		return { message: req.cookies["username-sp2"]};
+		return { message: req.cookies["username-sp2"], method: 'saml'};
 	}
 
 	@Post('logout')
@@ -106,7 +81,6 @@ export class SamlController {
 		// If logout value == yes then delete user info on thiss session
 		if (logout == 'yes') {
 			res.clearCookie("logined-sp2");
-			//console.log(req.cookies["logined"]);
 			res.clearCookie("username-sp2");
 		}
 		res.redirect('/saml/dashboard');
